@@ -1,0 +1,21 @@
+{
+  "name": "bultok",
+  "version": "1.0.0",
+  "description": "A TikTok live connector app with WebSocket support",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.3",
+    "http": "0.0.1-security",
+    "ws": "^8.7.0",
+    "tiktok-live-connector": "^1.0.0",
+    "path": "^0.12.7"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "author": "Sidhanie",
+  "license": "ISC"
+}
