@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BulTok TikTok Live Stream Interactive | By Sidhanie</title>
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-image: url('bg/bg0.jpeg'); /* Default background image */
+    background-size: cover; /* Ensure the image covers the entire viewport */
+    background-position: center; /* Center the image */
+    background-repeat: no-repeat; /* Prevent the image from repeating */
+    background-attachment: fixed; /* Make background image fixed */
+    height: 100vh; /* Ensure body takes up the full viewport height */
+    width: 100vw; /* Ensure body takes up the full viewport width */
+}
+
+/* Adjust for smaller devices */
+@media (max-width: 768px) {
+    body {
+        background-size: cover; /* Ensure background covers the viewport */
+        background-attachment: scroll; /* Disable fixed background on small screens */
+    }
+}
+
+/* Adjust for very small devices, e.g., phones in portrait mode */
+@media (max-width: 480px) {
+    body {
+        background-size: cover; /* Ensure background covers the viewport */
+        background-attachment: scroll; /* Disable fixed background */
+    }
+}
+
+        #settingsButton {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: none;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            text-align: center;
+            line-height: 50px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        #settingsPopup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            border-color: #007bff;
+            border-size: 15px;
+            border-radius: 5%;
+        }
+
+        #settingsPopup input, #settingsPopup select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            border-color: #007bff;
+            border-size: 15px;
+            border-radius: 5%;
+        }
+
+        #settingsPopup button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border-color: #007bff;
+            border-size: 15px;
+            border-radius: 5%;
+            cursor: pointer;
+        }
+
+        #settingsPopup button:hover {
+            background-color: #0056b3;
+        }
+
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .floating-photo, .big-photo {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 1000;
+            transition: transform 5s ease-in-out;
+        }
+
+        .big-photo {
+    width: 300px;
+    height: 300px;
+    display: none;
+    border-radius: 50%; /* Membuat elemen menjadi bulat */
+    background: linear-gradient(white, white) padding-box, 
+                linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet) border-box;
+    padding: 15px; /* Ketebalan border */
+}
+
+
+
+
+        
+
+
+        .big-photo.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Settings Button -->
+    <button id="settingsButton">&#9881;</button>
+
+    <!-- Settings Popup -->
+    <div id="overlay"></div>
+    <div id="settingsPopup">
+        <h2>Settings</h2>
+        <input type="text" id="usernameInput" placeholder="Enter TikTok username" />
+        
+        <center><label for="backgroundSelect">Pilih Background:</label></center>
+        <select id="backgroundSelect">
+            <option value="bg/bg0.jpeg">BG 0</option>
+            <option value="bg/bg1.jpeg">BG 1</option>
+            <option value="bg/bg2.png">BG 2</option>
+            <option value="bg/bg3.jpg">BG 3</option>
+            <option value="bg/bg4.jpeg">BG 4</option>
+            <option value="bg/bg5.jpg">BG 5</option>
+            <option value="bg/bg6.jpg">BG 6</option>
+            <option value="bg/bg7.jpg">BG 7</option>
+            <option value="bg/bg8.jpg">BG 8</option>
+            <option value="bg/bg9.jpg">BG 9</option>
+            <option value="bg/bg10.jpg">BG 10</option>
+            <option value="bg/vid1.mp4">VID 1</option>
+            <option value="bg/vid2.mp4">VID 2</option>
+        </select>
+        
+        <center><label for="enableBackground">Aktifkan Background</label></center>
+        <input type="checkbox" id="enableBackground" />
+
+        <button id="connectButton">Connect</button>
+        <button id="closeButton">Close</button>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:3000'); // Update to port 3000
+        let isPlaying = false;  // Track if sound is playing
+        let currentAudio = null;  // Track the current audio element
+
+        ws.onopen = () => {
+            console.log('WebSocket connection established.');
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            console.log('Message from server:', data);
+
+            switch (data.type) {
+                case 'floating-photo':
+                    showFloatingPhoto(data.profilePictureUrl, data.userName);
+                    break;
+                case 'big-photo':
+                    showBigPhoto(data.profilePictureUrl, data.userName);
+                    break;
+                case 'roomUser':
+                    console.log('Viewer Count:', data.viewerCount);
+                    break;
+                case 'play-sound':
+                    playSound(data.sound);
+                    break;
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        };
+
+        function showFloatingPhoto(pictureUrl, userName) {
+            const floatingImage = document.createElement('img');
+            floatingImage.src = pictureUrl;
+            floatingImage.alt = userName;
+            floatingImage.classList.add('floating-photo');
+            document.body.appendChild(floatingImage);
+
+            function positionImageRandomly() {
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const imageSize = 80;
+
+                const x = Math.random() * (viewportWidth - imageSize);
+                const y = Math.random() * (viewportHeight - imageSize);
+
+                floatingImage.style.transform = `translate(${x}px, ${y}px)`;
+            }
+
+            function animateImage() {
+                setInterval(() => {
+                    positionImageRandomly();
+                }, 500);
+            }
+
+            positionImageRandomly();
+            animateImage();
+
+            setTimeout(() => {
+                floatingImage.style.opacity = 0;
+                setTimeout(() => {
+                    floatingImage.remove();
+                }, 1000);
+            }, 30000);
+        }
+
+        function showBigPhoto(pictureUrl, userName) {
+            const bigPhotoDiv = document.createElement('div');
+            bigPhotoDiv.classList.add('big-photo');
+            bigPhotoDiv.style.backgroundImage = `url(${pictureUrl})`;
+            document.body.appendChild(bigPhotoDiv);
+
+            bigPhotoDiv.style.position = 'fixed';
+            bigPhotoDiv.style.top = '50%';
+            bigPhotoDiv.style.left = '50%';
+            bigPhotoDiv.style.transform = 'translate(-50%, -50%)';
+            bigPhotoDiv.style.zIndex = '9999';
+
+            setTimeout(() => {
+                bigPhotoDiv.classList.add('show');
+            }, 100);
+
+            setTimeout(() => {
+                bigPhotoDiv.classList.remove('show');
+                setTimeout(() => {
+                    bigPhotoDiv.remove();
+                }, 1000);
+            }, 30000);
+        }
+
+        function playSound(soundPath) {
+            if (isPlaying) {
+                currentAudio.pause();  // Stop the current audio
+                currentAudio = null;   // Clear the current audio element
+                isPlaying = false;    // Update status
+            }
+
+            currentAudio = new Audio(soundPath);
+            currentAudio.play();
+            isPlaying = true;
+
+            currentAudio.onended = () => {
+                isPlaying = false;
+                currentAudio = null;
+            };
+        }
+
+        function stopPlayingSound() {
+            if (isPlaying && currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+                isPlaying = false;
+            }
+        }
+
+        document.getElementById('settingsButton').addEventListener('click', () => {
+            document.getElementById('settingsPopup').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        });
+
+        document.getElementById('closeButton').addEventListener('click', () => {
+            document.getElementById('settingsPopup').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        });
+
+        document.getElementById('connectButton').addEventListener('click', () => {
+            const username = document.getElementById('usernameInput').value;
+            if (username) {
+                ws.send(JSON.stringify({ type: 'connect', username: username }));
+                document.getElementById('settingsPopup').style.display = 'none';
+                document.getElementById('overlay').style.display = 'none';
+            } else {
+                alert('Please enter a username.');
+            }
+        });
+
+        // Background change logic
+        const enableBackground = document.getElementById('enableBackground');
+        const backgroundSelect = document.getElementById('backgroundSelect');
+
+        enableBackground.addEventListener('change', () => {
+            if (enableBackground.checked) {
+                const selectedBackground = backgroundSelect.value;
+                document.body.style.backgroundImage = `url(${selectedBackground})`;
+            } else {
+                document.body.style.backgroundImage = 'none';
+            }
+        });
+
+        backgroundSelect.addEventListener('change', () => {
+            if (enableBackground.checked) {
+                const selectedBackground = backgroundSelect.value;
+                document.body.style.backgroundImage = `url(${selectedBackground})`;
+            }
+        });
+    </script>
+</body>
+</html>
